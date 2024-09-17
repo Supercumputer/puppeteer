@@ -159,5 +159,49 @@ async function forms(page, {
     }
 }
 
+async function mouseMove(page, x = null, y = null, element = null, timeout = 5000) {
+    try {
+        if (element) {
+            // Nếu truyền vào element, di chuyển đến element đó
+            await page.waitForSelector(element, { timeout });
+            const elem = await page.$(element);
+            const box = await elem.boundingBox();
+            await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        } else if (x !== null && y !== null) {
+            // Nếu truyền tọa độ (x, y)
+            await page.mouse.move(x, y);
+        } else {
+            throw new Error("Cần truyền tọa độ hoặc element");
+        }
+        console.log('Mouse moved successfully');
+        return "success";
+    } catch (error) {
+        console.error('Error in mouseMove:', error);
+        return `Error: ${error.message}`;
+    }
+}
 
-module.exports = { pressKey, forms };
+async function mouseClick(page, x = null, y = null, element = null, timeout = 5000) {
+    try {
+        if (element) {
+            // Nếu truyền vào element, click vào element đó
+            await page.waitForSelector(element, { timeout });
+            const elem = await page.$(element);
+            const box = await elem.boundingBox();
+            await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+        } else if (x !== null && y !== null) {
+            // Nếu truyền tọa độ (x, y)
+            await page.mouse.click(x, y);
+        } else {
+            throw new Error("Cần truyền tọa độ hoặc element");
+        }
+        console.log('Mouse clicked successfully');
+        return "success";
+    } catch (error) {
+        console.error('Error in mouseClick:', error);
+        return `Error: ${error.message}`;
+    }
+}
+
+
+module.exports = { pressKey, forms, mouseMove, mouseClick };
