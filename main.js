@@ -9,7 +9,8 @@ const installMouseHelper = require('./mousehelper.js');
 
     await installMouseHelper(page);
     // Mở một trang ví dụ
-    await page.goto('https://www.facebook.com/');
+    // await page.goto('https://www.facebook.com/');
+    await page.goto('https://coccoc.com/search?query=YouTube');
 
     //check tọa độ cụ thể:
     // const coordinates = await xpathCoordinates(page, '//*[@id="content"]/div/div/div/div[1]/div/img');
@@ -140,13 +141,13 @@ const installMouseHelper = require('./mousehelper.js');
 
     // console.log(result4);
 
-    let result5 = await ScrollElement(page, 'xpath', '//*[@id="globalContainer"]/div[2]/div', {
+    let result5 = await ScrollElement(page, 'xpath', '//*[@id="root"]/div/div[1]/div[2]/div[5]', {
         multiple: false,
         markElement: true,
         waitForSelector: false,
         selectorTimeout: 20000,
-        scrollHorizontal: 100,
-        scrollVertical: 200,
+        scrollHorizontal: 0,
+        scrollVertical: 10000,
         scrollIntoView: false,
         smoothScroll: true,
         incrementHorizontal: false,

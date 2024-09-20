@@ -472,17 +472,25 @@ async function ScrollElement(page, findBy, selector, options = {}) {
         }
 
         if (elements.length === 0 || !elements[0]) {
+            console.error('No elements found for selector:', selector);
             return 'Element not found';
         }
 
         for (let element of elements) {
-            // Di chuyển chuột đến phần tử
-            const box = await element.boundingBox();
-            if (box) {
-                await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 10 });
+
+            // Kiểm tra xem element có phải là một phần tử hợp lệ không
+            if (element && typeof element.boundingBox === 'function') {
+                const box = await element.boundingBox();
+
+                if (box) {
+                    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 10 });
+                } else {
+                    console.error('Could not get bounding box');
+                    return 'bounding box not found';
+                }
             } else {
-                console.error('Could not get bounding box');
-                return 'bounding box not found';
+                console.error('Element is not valid or boundingBox is not a function');
+                return 'Invalid element';
             }
 
             // Đánh dấu phần tử nếu được yêu cầu
@@ -504,17 +512,24 @@ async function ScrollElement(page, findBy, selector, options = {}) {
                     const horizontalStep = incrementHorizontal ? scrollHorizontal : 0;
                     const verticalStep = incrementVertical ? scrollVertical : 0;
 
-                    await page.evaluate((el, horizontalStep, verticalStep, smooth) => {
-                        if (el) {
-                            el.scroll({ left: horizontalStep, top: verticalStep, behavior: smooth ? 'smooth' : 'auto' });
-                        }
-                    }, element, horizontalStep, verticalStep, smoothScroll);
+                    await page.evaluate((horizontalStep, verticalStep, smooth) => {
+
+                        window.scrollBy({
+                            left: horizontalStep,
+                            top: verticalStep,
+                            behavior: smooth ? 'smooth' : 'auto'
+                        });
+
+                    }, horizontalStep, verticalStep, smoothScroll);
                 } else {
-                    await page.evaluate((el, scrollHorizontal, scrollVertical, smooth) => {
-                        if (el) {
-                            el.scroll({ left: scrollHorizontal, top: scrollVertical, behavior: smooth ? 'smooth' : 'auto' });
-                        }
-                    }, element, scrollHorizontal, scrollVertical, smoothScroll);
+                    // Cuộn trang đến vị trí cụ thể nếu không phải cuộn theo phần tử
+                    await page.evaluate((scrollHorizontal, scrollVertical, smooth) => {
+                        window.scrollBy({
+                            left: scrollHorizontal,
+                            top: scrollVertical,
+                            behavior: smooth ? 'smooth' : 'auto'
+                        });
+                    }, scrollHorizontal, scrollVertical, smoothScroll);
                 }
             }
         }
