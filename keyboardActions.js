@@ -1,3 +1,5 @@
+const { timeout } = require("puppeteer");
+
 async function xpathCoordinates(page, path) {
     const resultsHandle = await page.evaluateHandle(path => {
         let results = [];
@@ -971,6 +973,21 @@ async function attributeValue(page, selectorType, selectorValue, options = {}) {
     let results = [];
 
     for (let element of elements) {
+
+        if (element && typeof element.boundingBox === 'function') {
+            const box = await element.boundingBox();
+
+            if (box) {
+                await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 10 });
+            } else {
+                console.error('Could not get bounding box');
+                return 'bounding box not found';
+            }
+        } else {
+            console.error('Element is not valid or boundingBox is not a function');
+            return 'Invalid element';
+        }
+
         if (markElement) {
             if (element) {
                 await page.evaluate(el => {
@@ -996,4 +1013,311 @@ async function attributeValue(page, selectorType, selectorValue, options = {}) {
     return results.length > 1 ? results : results[0]; // Trả về mảng nếu nhiều phần tử, ngược lại trả về giá trị đơn
 }
 
-module.exports = { pressKey, forms, mouseMove, mouseClick, hoverElement, ScrollElement, xpathCoordinates, switchFrame, attributeValue };
+const getText = async (page, findBy, selectorValue, options, flags, prefix = null, suffix = null) => {
+    try {
+        const { multiple = false, markElement = false, waitForSelector = false, selectorTimeout = 5000, includeHtmlTag = false, useTextContent = false } = options;
+
+        let elements = [];
+
+        if (waitForSelector) {
+            if (findBy === "css") {
+                await page.waitForSelector(selectorValue, { timeout: selectorTimeout });
+            } else {
+                await page.waitForFunction(
+                    (xpath) => document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null,
+                    { timeout: selectorTimeout },
+                    selectorValue
+                )
+            }
+        }
+
+        if (findBy === "css") {
+            if (multiple) {
+                elements = await page.$$(selectorValue);
+            } else {
+                elements = [await page.$(selectorValue)];
+            }
+        } else if (findBy === "xpath") {
+            // Đầu tiên, kiểm tra xem XPath có trả về nhiều phần tử hay không
+            const elementCount = await page.evaluate((xpath) => {
+                const iterator = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+                let count = 0;
+                let node = iterator.iterateNext();
+                while (node) {
+                    count++;
+                    node = iterator.iterateNext();
+                }
+                return count;
+            }, selectorValue);
+
+            // Nếu có nhiều hơn 1 phần tử và multiple là true
+            if (elementCount > 1 && multiple) {
+                const elementsArray = await page.evaluate((xpath) => {
+                    const iterator = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+                    let node = iterator.iterateNext();
+                    const nodes = [];
+                    while (node) {
+                        nodes.push(node); // Đẩy từng phần tử DOM vào mảng nodes
+                        node = iterator.iterateNext();
+                    }
+                    return nodes;
+                }, selectorValue);
+
+                // Chuyển đổi mỗi phần tử DOM thành ElementHandle trong Puppeteer
+                elements = await Promise.all(elementsArray.map(async (element) => {
+                    return await page.evaluateHandle((el) => el, element);
+                }));
+
+            } else {
+                const element = await page.evaluateHandle((xpath) => {
+                    return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                }, selectorValue);
+                elements.push(element);
+            }
+        }
+
+        if (!elements || elements.length === 0) {
+            console.log('Element not found');
+            return 'element not found';
+        }
+
+        const texts = [];
+
+        for (let element of elements) {
+
+            // Kiểm tra xem element có phải là một phần tử hợp lệ không
+            if (element && typeof element.boundingBox === 'function') {
+                const box = await element.boundingBox();
+
+                if (box) {
+                    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 10 });
+                } else {
+                    console.error('Could not get bounding box');
+                    return 'bounding box not found';
+                }
+            } else {
+                console.error('Element is not valid or boundingBox is not a function');
+                return 'Invalid element';
+            }
+
+            if (markElement) {
+                await page.evaluate(el => {
+                    el.style.border = '2px solid red';
+                }, element);
+            }
+
+            // Lấy nội dung từ element dựa trên tùy chọn useTextContent hoặc includeHtmlTag
+            let text;
+
+            if (includeHtmlTag) {
+                text = await page.evaluate(el => el.outerHTML, element); // Lấy cả thẻ HTML
+            } else if (useTextContent) {
+                text = await page.evaluate(el => el.textContent.trim(), element); // Lấy textContent
+            } else {
+                text = await page.evaluate(el => el.innerText.trim(), element); // Lấy innerText
+            }
+
+            if (flags) {
+                const regex = new RegExp(flags, 'g');
+                const matches = text.match(regex);
+
+                if (matches) {
+                    for (const match of matches) {
+                        // Thêm prefix và suffix vào từng phần khớp
+                        texts.push(`${prefix || ''}${match}${suffix || ''}`);
+                    }
+                }
+            } else {
+                // Nếu không có flags, thêm văn bản gốc với prefix và suffix
+                texts.push(`${prefix || ''}${text}${suffix || ''}`);
+            }
+        }
+
+        return multiple ? texts : texts[0]; // Trả về 1 phần tử hoặc mảng phần tử
+
+    } catch (error) {
+        if (error.name === 'TimeoutError') {
+            console.error('Element not found:', error.message);
+            return 'element not found';
+        } else {
+            console.error('Error in mouseMove:', error);
+            return `Error: ${error.message}`;
+        }
+    }
+}
+
+const link = async (page, findBy, selectorValue, options) => {
+    try {
+        let element;
+
+        const { markElement = false, waitForSelector = false, selectorTimeout = 5000, openLinkInNewTab = false } = options;
+
+        if (waitForSelector) {
+            if (findBy === "css") {
+                await page.waitForSelector(selectorValue, { timeout: selectorTimeout })
+            } else {
+                await page.waitForFunction(
+                    (xpath) => document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null,
+                    { timeout: selectorTimeout },
+                    selectorValue
+                )
+            }
+        }
+
+        if (findBy === "css") {
+            element = await page.$(selectorValue);
+        } else if (findBy === "xpath") {
+            element = await page.evaluateHandle((xpath) => {
+                return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            }, selectorValue);
+        }
+
+        if (!element) {
+            console.log('Element not found');
+            return 'element not found';
+        }
+
+        // Kiểm tra xem element có phải là một phần tử hợp lệ không
+        if (element && typeof element.boundingBox === 'function') {
+            const box = await element.boundingBox();
+
+            if (box) {
+                await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 10 });
+            } else {
+                console.error('Could not get bounding box');
+                return 'bounding box not found';
+            }
+        } else {
+            console.error('Element is not valid or boundingBox is not a function');
+            return 'Invalid element';
+        }
+
+        // Kiểm tra xem phần tử có phải là link hay không
+        // const tagName = await page.evaluate(el => el.tagName, element);
+        // const isLink = tagName.toLowerCase() === 'a' || await page.evaluate(el => el.hasAttribute('href'), element);
+
+        // if (!isLink) {
+        //     console.log('Element is not a link');
+        //     return 'element is not a link';
+        // }
+
+        if (markElement) {
+            await page.evaluate(el => {
+                el.style.border = '2px solid red';
+            }, element);
+        }
+
+        if (openLinkInNewTab) {
+            await page.evaluate(el => {
+                el.target = '_blank';
+            }, element);
+        }
+
+        await page.evaluate(el => {
+            el.click();
+        }, element);
+
+        return 'success';
+
+    } catch (error) {
+        if (error.name === 'TimeoutError') {
+            console.error('Element not found:', error.message);
+            return 'element not found';
+        } else {
+            console.error('Error in mouseMove:', error);
+            return `Error: ${error.message}`;
+        }
+    }
+}
+
+const createElement = async (page, findBy, selectorValue, options, insertElement, editElement) => {
+    try {
+        const { waitForSelector = false, selectorTimeout = 5000 } = options
+
+        let element;
+
+        if (waitForSelector) {
+            if (findBy === 'css') {
+                await page.waitForSelector(selectorValue, { timeout: selectorTimeout })
+            } else {
+                await page.waitForFunction(
+                    (xpath) => document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue !== null,
+                    { timeout: selectorTimeout },
+                    selectorValue
+                )
+            }
+        }
+
+        if (findBy === 'xpath') {
+            element = await page.evaluateHandle((xpath) => {
+                return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            }, selectorValue);
+        } else {
+            element = await page.$(selectorValue);
+        }
+
+        // Kiểm tra xem element có phải là một phần tử hợp lệ không
+        if (element && typeof element.boundingBox === 'function') {
+            const box = await element.boundingBox();
+
+            if (box) {
+                await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 10 });
+            } else {
+                console.error('Could not get bounding box');
+                return 'bounding box not found';
+            }
+        } else {
+            console.error('Element is not valid or boundingBox is not a function');
+            return 'Invalid element';
+        }
+
+        // Chèn phần tử vào vị trí xác định
+        await page.evaluate(({ position, content }, target) => {
+            switch (position) {
+                case 'as first child':
+                    target.insertAdjacentHTML('afterbegin', content);
+                    break;
+                case 'as last child':
+                    target.insertAdjacentHTML('beforeend', content);
+                    break;
+                case 'as previous sibling':
+                    target.insertAdjacentHTML('beforebegin', content);
+                    break;
+                case 'as next sibling':
+                    target.insertAdjacentHTML('afterend', content);
+                    break;
+                case 'replace target element':
+                    target.outerHTML = content;
+                    break;
+                default:
+                    console.error('Invalid position:', position);
+            }
+        }, { position: insertElement, content: editElement }, element);
+
+        return 'success';
+
+    } catch (error) {
+        if (error.name === 'TimeoutError') {
+            console.error('Element not found:', error.message);
+            return 'element not found';
+        } else {
+            console.error('Error in mouseMove:', error);
+            return `Error: ${error.message}`;
+        }
+    }
+}
+
+module.exports = {
+    pressKey,
+    forms,
+    mouseMove,
+    mouseClick,
+    hoverElement,
+    ScrollElement,
+    xpathCoordinates,
+    switchFrame,
+    attributeValue,
+    getText,
+    link,
+    createElement
+};

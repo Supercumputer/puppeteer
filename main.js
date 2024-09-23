@@ -1,6 +1,6 @@
 // main.js
 const puppeteer = require('puppeteer');
-const { pressKey, forms, mouseClick, mouseMove, hoverElement, ScrollElement, xpathCoordinates, switchFrame, attributeValue } = require('./keyboardActions');
+const { pressKey, forms, mouseClick, mouseMove, hoverElement, ScrollElement, xpathCoordinates, switchFrame, attributeValue, getText, link, createElement } = require('./keyboardActions');
 const installMouseHelper = require('./mousehelper.js');
 
 (async () => {
@@ -9,9 +9,77 @@ const installMouseHelper = require('./mousehelper.js');
 
     await installMouseHelper(page);
     // Mở một trang ví dụ
-    // await page.goto('https://www.facebook.com/');
+    await page.goto('https://www.facebook.com/');
+    // await page.goto('https://www.google.com/search?q=google+number&sca_esv=f28b3b0bae9cc4f2&sca_upv=1&biw=800&bih=600&ei=rOXwZqLYOKTi2roP0ZGwiAw&ved=0ahUKEwii3sfklNiIAxUksVYBHdEIDME4ChDh1QMIDw&uact=5&oq=google+number&gs_lp=Egxnd3Mtd2l6LXNlcnAiDWdvb2dsZSBudW1iZXIyBRAAGIAEMgYQABgWGB4yBhAAGBYYHjIGEAAYFhgeMgYQABgWGB4yBhAAGBYYHjIGEAAYFhgeMgYQABgWGB4yBhAAGBYYHjIGEAAYFhgeSMQYUNELWMMXcAF4AJABAJgBYKAB1wWqAQE4uAEDyAEA-AEBmAIIoAKUBcICChAAGLADGNYEGEfCAg0QABiABBiwAxhDGIoFwgITEC4YgAQYsAMYQxjIAxiKBdgBAcICCBAAGIAEGLEDwgIEEAAYA8ICCxAAGIAEGLEDGIMBmAMAiAYBkAYMugYECAEYCJIHATigB_ky&sclient=gws-wiz-serp');
     // await page.goto('https://coccoc.com/search?query=YouTube');
-    await page.goto('https://www.w3schools.com/html/tryit.asp?filename=tryhtml_default');
+    // await page.goto('https://www.w3schools.com/html/tryit.asp?filename=tryhtml_default');
+
+    let result = await createElement(
+        page,                // Puppeteer page instance
+        'css',               // Tìm bằng CSS selector
+        '._8eso',              // Selector để tìm phần tử <head> (chèn thẻ <style> vào đây)
+        { waitForSelector: true, selectorTimeout: 5000 },  // Tùy chọn chờ phần tử xuất hiện
+        'as last child',     // Chèn vào cuối thẻ <head>
+        '<style> ._8eso { color: red !important; } </style>'  // Nội dung CSS sẽ được chèn vào <head>
+    );
+
+    // const jsContent = `
+    //     <script>
+    //         console.log('Hello from injected script!');
+    //         document.body.style.backGround = 'red' !important;
+    //     </script>
+    // `;
+
+    // let result = await createElement(
+    //     page,                // Puppeteer page instance
+    //     'css',               // Tìm bằng CSS selector
+    //     'head',              // Selector để tìm phần tử <head> (chèn thẻ <style> vào đây)
+    //     { waitForSelector: true, selectorTimeout: 5000 },  // Tùy chọn chờ phần tử xuất hiện
+    //     'as last child',     // Chèn vào cuối thẻ <head>
+    //     jsContent  // Nội dung CSS sẽ được chèn vào <head>
+    // );
+
+    // const result = await createElement(
+    //     page, // Đối tượng trang Puppeteer
+    //     'xpath', // Sử dụng XPath selector để chọn phần tử
+    //     '//*[@id="content"]/div/div/div/div[1]/h2', // Chọn phần tử body bằng XPath
+    //     { waitForSelector: true, selectorTimeout: 5000 }, // Tùy chọn chờ phần tử
+    //     'as last child', // Chèn phần tử mới là con cuối cùng
+    //     '<h2>Hello haha World</h2>' // Nội dung HTML chèn vào
+    // );
+    // console.log(result);
+
+    // const text = await getText(page, 'css', '.g:nth-child(5) .VwiC3b > span', {
+    //     multiple: false,           // Nếu bạn muốn tìm nhiều phần tử
+    //     markElement: true,        // Đánh dấu phần tử
+    //     waitForSelector: true,    // Đợi phần tử xuất hiện
+    //     selectorTimeout: 5000,    // Thời gian chờ
+    //     includeHtmlTag: false,    // Không lấy cả thẻ HTML
+    //     useTextContent: false      // Lấy textContent thay vì innerText
+    // }, '\\d+', '', '');
+
+    // console.log('\x1b[31m%s\x1b[0m', text);
+
+    // const text = await getText(page, 'xpath', '//*[@id="content"]/div/div/div/div[1]/h2', {
+    //     multiple: true,           // Nếu bạn muốn tìm nhiều phần tử
+    //     markElement: true,        // Đánh dấu phần tử
+    //     waitForSelector: true,    // Đợi phần tử xuất hiện
+    //     selectorTimeout: 5000,    // Thời gian chờ
+    //     includeHtmlTag: false,    // Không lấy cả thẻ HTML
+    //     useTextContent: false      // Lấy textContent thay vì innerText
+    // }, null, '', '');
+
+    // console.log('\x1b[31m%s\x1b[0m', text);
+
+    // const links = await link(page, 'css', '.LC20lb.MBeuO.DKV0Md', {
+    //     markElement: true,        // Đánh dấu phần tử
+    //     waitForSelector: true,    // Đợi phần tử xuất hiện
+    //     selectorTimeout: 5000,      // Thời gian chờ
+    //     openLinkInNewTab: false
+    // });
+
+    // console.log('\x1b[31m%s\x1b[0m', links);
+
 
     //check tọa độ cụ thể:
     // const coordinates = await xpathCoordinates(page, '//*[@id="root"]/div/div[1]/div[4]/div/div/div[1]/div[1]/a/div');
@@ -166,8 +234,8 @@ const installMouseHelper = require('./mousehelper.js');
 
     // console.log(result5);
 
-    let result = await switchFrame(page, 'main-window');
-    console.log(result);  // success
+    // let result = await switchFrame(page, 'main-window');
+    // console.log(result);  // success
 
     // let result = await switchFrame(page, 'iframe', 'css', '#iframeResult');
     // console.log(result);  // success
