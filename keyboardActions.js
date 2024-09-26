@@ -244,58 +244,58 @@ async function forms(page, {
     }
 }
 
-// async function mouseMove(page, x = null, y = null, selectorType = null, selectorValue = null, timeout = 5000) {
-//     try {
-//         let elem;
+async function mouseMove(page, x = null, y = null, selectorType = null, selectorValue = null, timeout = 5000) {
+    try {
+        let elem;
 
-//         if (selectorValue) {
-//             if (selectorType === 'xpath') {
+        if (selectorValue) {
+            if (selectorType === 'xpath') {
 
-//                 // Xử lý phần tử bằng XPath
-//                 await page.waitForFunction(
-//                     (xpath) => {
-//                         const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-//                         return result !== null;
-//                     },
-//                     { timeout },
-//                     selectorValue
-//                 );
+                // Xử lý phần tử bằng XPath
+                await page.waitForFunction(
+                    (xpath) => {
+                        const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                        return result !== null;
+                    },
+                    { timeout },
+                    selectorValue
+                );
 
-//                 elem = await page.evaluateHandle((xpath) => {
-//                     const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-//                     return result;
-//                 }, selectorValue);
+                elem = await page.evaluateHandle((xpath) => {
+                    const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                    return result;
+                }, selectorValue);
 
-//                 const box = await elem.boundingBox();
-//                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 10 });
-//             } else if (selectorType === 'css') {
-//                 // Xử lý phần tử bằng CSS selector
-//                 await page.waitForSelector(selectorValue, { timeout });
-//                 elem = await page.$(selectorValue);
-//                 const box = await elem.boundingBox();
-//                 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 10 });
-//             } else {
-//                 throw new Error(`Invalid selector type: ${selectorType}`);
-//             }
-//         } else if (x !== null && y !== null) {
-//             // Nếu truyền tọa độ (x, y)
-//             await page.mouse.move(x, y, { steps: 10 });
-//         } else {
-//             throw new Error("Cần truyền tọa độ hoặc selectorValue");
-//         }
+                const box = await elem.boundingBox();
+                await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 10 });
+            } else if (selectorType === 'css') {
+                // Xử lý phần tử bằng CSS selector
+                await page.waitForSelector(selectorValue, { timeout });
+                elem = await page.$(selectorValue);
+                const box = await elem.boundingBox();
+                await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 10 });
+            } else {
+                throw new Error(`Invalid selector type: ${selectorType}`);
+            }
+        } else if (x !== null && y !== null) {
+            // Nếu truyền tọa độ (x, y)
+            await page.mouse.move(x, y, { steps: 10 });
+        } else {
+            throw new Error("Cần truyền tọa độ hoặc selectorValue");
+        }
 
-//         console.log('Mouse moved successfully');
-//         return "success";
-//     } catch (error) {
-//         if (error.name === 'TimeoutError') {
-//             console.error('Element not found:', selectorValue);
-//             return `Element not found: ${selectorValue}`;
-//         } else {
-//             console.error('Error in mouseMove:', error);
-//             return `Error: ${error.message}`;
-//         }
-//     }
-// }
+        console.log('Mouse moved successfully');
+        return "success";
+    } catch (error) {
+        if (error.name === 'TimeoutError') {
+            console.error('Element not found:', selectorValue);
+            return `Element not found: ${selectorValue}`;
+        } else {
+            console.error('Error in mouseMove:', error);
+            return `Error: ${error.message}`;
+        }
+    }
+}
 
 async function mouseMove(page, selectorType, options = {}, timeout = 5000, markElement = false, multiple = false) {
     try {
@@ -872,6 +872,8 @@ async function switchFrame(page, windowType, findBy, selectorValue) {
             if (frame) {
                 await frame.waitForSelector('body', { timeout: 5000 }); // Wait for iframe content to load
                 console.log('Switched to the iframe');
+                const text = await frame.$eval('h1', el => el.innerText);
+                console.log('Text inside iframe:', text);
                 return 'success'; // Return the iframe context to use in future actions
             } else {
                 throw new Error('Failed to switch to the iframe');
@@ -1307,6 +1309,235 @@ const createElement = async (page, findBy, selectorValue, options, insertElement
     }
 }
 
+const cookie = async function (page, action, options) {
+    try {
+        switch (action) {
+            case 'get Cookie':
+                if (options.useJsonFormat) {
+                    // Nếu useJsonFormat là true, phân tích JSON để lọc cookies
+                    const jsonCookies = JSON.parse(options.json);
+                    const allCookies = await page.cookies();
+
+                    const filteredCookies = allCookies.filter(cookie => {
+                        return jsonCookies.some(jsonCookie =>
+                            (!jsonCookie.Name || cookie.name === jsonCookie.Name) &&
+                            (!jsonCookie.Path || cookie.path === jsonCookie.Path) &&
+                            (!jsonCookie.Domain || cookie.domain === jsonCookie.Domain) &&
+                            (jsonCookie.secure === undefined || cookie.secure === jsonCookie.secure)
+                        );
+                    });
+
+                    // Trả về các cookies đã lọc
+                    return { success: true, data: filteredCookies, message: 'success' };
+
+                } else {
+
+                    if (options.getAllCookies) {
+                        // Lấy tất cả các cookie từ trang hiện tại và lọc theo các trường được yêu cầu
+                        const allCookies = await page.cookies();
+
+                        const filteredCookies = allCookies.filter(cookie => {
+                            let match = true;
+
+                            // Lọc theo tên nếu có
+                            if (options.Name) {
+                                match = match && cookie.name === options.Name;
+                            }
+
+                            // Lọc theo đường dẫn nếu có
+                            if (options.Path) {
+                                match = match && cookie.path === options.Path;
+                            }
+
+                            // Lọc theo domain nếu có
+                            if (options.Domain) {
+                                match = match && cookie.domain === options.Domain;
+                            }
+
+                            match = match && cookie.secure === options.secure;
+
+                            return match;
+                        });
+
+                        return { success: true, data: filteredCookies, message: 'success' };
+
+                    } else {
+                        // Khi getAllCookies là false, chỉ lọc theo URL, Name và Path
+                        const allCookies = await page.cookies(options.url);
+
+                        const filteredCookies = allCookies.filter(cookie => {
+                            let match = true;
+
+                            // Lọc theo tên
+                            if (options.Name) {
+                                match = match && cookie.name === options.Name;
+                            }
+
+                            // Lọc theo đường dẫn (optional)
+                            if (options.Path) {
+                                match = match && cookie.path === options.Path;
+                            }
+
+                            return match;
+                        });
+
+                        return { success: true, data: filteredCookies, message: 'success' };
+                    }
+                }
+
+            case 'set Cookie':
+                // Thiết lập cookie
+                if (options.useJsonFormat) {
+                    const cook = JSON.parse(options.json);
+                    await page.setCookie(cook);
+
+                } else {
+                    const cookie = {
+                        url: options.url,
+                        name: options.Name,
+                        value: options.Value,
+                        path: options.Path,
+                        domain: options.Domain,
+                        sameSite: options.sameSite,
+                        expires: options.expirationDate ? Date.now() / 1000 + options.expirationDate : undefined,
+                        httpOnly: options.httpOnly,
+                        secure: options.secure,
+                    };
+                    await page.setCookie(cookie);
+                }
+
+                return { success: true, message: 'success' };
+
+            // page.cookies.set({
+            //     url: options.url,
+            //     name: "favorite-color",
+            //     value: "red",
+            //   });
+            // }
+
+            case 'remove Cookies':
+                // Xóa cookie
+                if (options.useJsonFormat) {
+                    const cookiesToRemove = JSON.parse(options.json);
+                    await page.deleteCookie(cookiesToRemove);
+                    return { success: true, message: 'success' };
+                } else {
+                    const cookie = {
+                        name: options.Name,
+                        path: options.Path || '/',  // Cung cấp path mặc định nếu không có
+                    };
+
+                    // Kiểm tra nếu có URL, lấy tất cả cookie theo URL và xóa cookie mong muốn
+                    const cookiesToDelete = await page.cookies(options.url);
+
+                    const targetCookie = cookiesToDelete.find(c => c.name === cookie.name && c.path === cookie.path);
+
+                    if (targetCookie) {
+                        await page.deleteCookie(targetCookie);
+                        return { success: true, message: 'success' };
+                    } else {
+                        return { success: false, message: 'Không tìm thấy cookie cần xóa' };
+                    }
+                }
+
+            default:
+                return { success: false, message: 'Unknown action: ' + action };
+        }
+    } catch (error) {
+        // Bắt lỗi nếu có bất kỳ lỗi nào xảy ra
+        return { success: false, message: 'An error occurred: ' + error.message };
+    }
+};
+
+const javascriptCode = async (page, executionContext = 'active tab', options) => {
+    try {
+        const {
+            timeout = 0, // milliseconds
+            jsCode = {}, // đối tượng chứa mã JavaScript và preload scripts
+            executeInEveryNewTab = false, // thực thi mã trong mọi tab mới
+            runBeforePageLoad = false // thực thi mã trước khi trang được tải
+        } = options;
+
+        // Kiểm tra điều kiện cho Execute in every new tab
+        if (executeInEveryNewTab) {
+
+            page.on('popup', async (newPage) => {
+                console.log("data =>", newPage); // Log để kiểm tra sự kiện
+
+                if (runBeforePageLoad) {
+                    await newPage.evaluateOnNewDocument(jsCode.javascript); // Thực hiện trước khi trang được tải
+                } else {
+                    await newPage.evaluate(jsCode.javascript); // Thực hiện sau khi trang đã tải
+                }
+
+                const preloadResult = await addPreloadScripts(newPage, jsCode.preloadScripts);
+
+                if (!preloadResult.success) {
+                    return { success: false, message: preloadResult.message };
+                }
+            });
+
+            console.log("Execute in every new tab.");
+
+            return { success: true, message: "success" };
+        }
+
+        // Xác định thời gian chờ
+        if (timeout > 0) {
+            await page.setDefaultTimeout(timeout);
+        }
+
+        // Thực hiện mã dựa trên executionContext
+        if (executionContext === 'active tab') {
+            if (runBeforePageLoad) {
+                await page.evaluateOnNewDocument(jsCode.javascript); // Thực hiện trước khi trang được tải
+            } else {
+                await page.evaluate(jsCode.javascript); // Thực hiện sau khi trang đã tải
+            }
+        } else if (executionContext === 'background') {
+            await page.evaluate(jsCode.javascript); // Thực hiện trong ngữ cảnh nền
+        }
+
+        // Thực thi preloadScripts nếu có
+        const preloadResult = await addPreloadScripts(page, jsCode.preloadScripts);
+
+        if (!preloadResult.success) {
+            return { success: false, message: preloadResult.message }; // Trả về thông báo lỗi nếu thêm preload scripts thất bại
+        }
+
+        console.log('JavaScript executed successfully');
+
+        return { success: true, message: 'success' };
+
+    } catch (error) {
+        return { success: false, message: 'An error occurred: ' + error.message };
+    }
+};
+
+const addPreloadScripts = async (page, preloadScripts) => {
+    if (Array.isArray(preloadScripts)) {
+
+        console.log('Preparing to add preload scripts...'); // Log thông báo chuẩn bị thêm script
+
+        for (const script of preloadScripts) {
+            if (typeof script === 'string' && script.startsWith('http')) {
+                try {
+                    await page.addScriptTag({ url: script });
+                    console.log(`Successfully added preload script: ${script}`); // Log khi thêm thành công
+                } catch (error) {
+
+                    return { success: false, message: `Failed to add preload script from URL: ${script}` }; // Trả về lỗi
+                }
+            } else {
+                return { success: false, message: `Invalid script URL: ${script}. Must be a string starting with 'http'.` }; // Trả về lỗi
+            }
+        }
+        return { success: true, message: "success" }; // Trả về thành công nếu thêm preload scripts
+    } else {
+        return { success: false, message: 'No preload scripts provided or invalid format.' }; // Trả về lỗi nếu không có preload scripts
+    }
+};
+
 module.exports = {
     pressKey,
     forms,
@@ -1319,5 +1550,7 @@ module.exports = {
     attributeValue,
     getText,
     link,
-    createElement
+    createElement,
+    cookie,
+    javascriptCode
 };
