@@ -1538,6 +1538,39 @@ const addPreloadScripts = async (page, preloadScripts) => {
     }
 };
 
+const elementExists = async (page, findBy, selector, tryFor = 1, timeout = 1000) => {
+    try {
+        for (let attempt = 0; attempt < tryFor; attempt++) {
+
+            let element;
+            // Chờ phần tử xuất hiện với timeout quy định
+            if (findBy === "cssSelector") {
+                await page.waitForSelector(selector, { timeout: timeout });
+                element = await page.$(selector);
+            } else {
+                await page.waitForSelector('xpath/' + selector, { timeout: timeout });
+                element = await page.$('xpath/' + selector);
+            }
+
+            // Kiểm tra sự tồn tại của phần tử
+            if (element) {
+                return { success: true, message: 'success' };
+            }
+        }
+
+        // Nếu không tìm thấy phần tử sau tất cả các lần thử
+        return { success: false, message: 'Element not found' };
+
+    } catch (error) {
+        if (error.name === 'TimeoutError') {
+            return { success: false, message: 'Element not found' }
+        } else {
+            console.error('Error in ElementExists:', error);
+            return { success: false, message: `Error: ${error.message}` };
+        }
+    }
+}
+
 module.exports = {
     pressKey,
     forms,
@@ -1552,5 +1585,6 @@ module.exports = {
     link,
     createElement,
     cookie,
-    javascriptCode
+    javascriptCode,
+    elementExists
 };

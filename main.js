@@ -1,6 +1,6 @@
 // main.js
 const puppeteer = require('puppeteer');
-const { pressKey, forms, mouseClick, cookie, mouseMove, hoverElement, javascriptCode, ScrollElement, xpathCoordinates, switchFrame, attributeValue, getText, link, createElement } = require('./keyboardActions');
+const { pressKey, forms, mouseClick, cookie, mouseMove, hoverElement, elementExists, javascriptCode, ScrollElement, xpathCoordinates, switchFrame, attributeValue, getText, link, createElement } = require('./keyboardActions');
 const installMouseHelper = require('./mousehelper.js');
 
 (async () => {
@@ -9,11 +9,15 @@ const installMouseHelper = require('./mousehelper.js');
 
   await installMouseHelper(page);
   // Mở một trang ví dụ
-  await page.goto('https://www.google.com/search?gs_ssp=eJzj4tTP1TcwMU02T1JgNGB0YPBiS8_PT89JBQBASQXT&q=google&oq=g&gs_lcrp=EgZjaHJvbWUqEwgDEC4YgwEYxwEYsQMY0QMYgAQyBggAEEUYPDIJCAEQRRg5GIAEMg0IAhAAGIMBGLEDGIAEMhMIAxAuGIMBGMcBGLEDGNEDGIAEMg0IBBAAGIMBGLEDGIAEMgYIBRAAGAMyDQgGEAAYgwEYsQMYgAQyDQgHEAAYgwEYsQMYgATSAQgyNTEwajBqNKgCALACAQ&sourceid=chrome&ie=UTF-8');
+  // await page.goto('https://www.google.com/search?gs_ssp=eJzj4tTP1TcwMU02T1JgNGB0YPBiS8_PT89JBQBASQXT&q=google&oq=g&gs_lcrp=EgZjaHJvbWUqEwgDEC4YgwEYxwEYsQMY0QMYgAQyBggAEEUYPDIJCAEQRRg5GIAEMg0IAhAAGIMBGLEDGIAEMhMIAxAuGIMBGMcBGLEDGNEDGIAEMg0IBBAAGIMBGLEDGIAEMgYIBRAAGAMyDQgGEAAYgwEYsQMYgAQyDQgHEAAYgwEYsQMYgATSAQgyNTEwajBqNKgCALACAQ&sourceid=chrome&ie=UTF-8');
 
   // await page.goto('https://www.google.com/search?q=google+number&sca_esv=f28b3b0bae9cc4f2&sca_upv=1&biw=800&bih=600&ei=rOXwZqLYOKTi2roP0ZGwiAw&ved=0ahUKEwii3sfklNiIAxUksVYBHdEIDME4ChDh1QMIDw&uact=5&oq=google+number&gs_lp=Egxnd3Mtd2l6LXNlcnAiDWdvb2dsZSBudW1iZXIyBRAAGIAEMgYQABgWGB4yBhAAGBYYHjIGEAAYFhgeMgYQABgWGB4yBhAAGBYYHjIGEAAYFhgeMgYQABgWGB4yBhAAGBYYHjIGEAAYFhgeSMQYUNELWMMXcAF4AJABAJgBYKAB1wWqAQE4uAEDyAEA-AEBmAIIoAKUBcICChAAGLADGNYEGEfCAg0QABiABBiwAxhDGIoFwgITEC4YgAQYsAMYQxjIAxiKBdgBAcICCBAAGIAEGLEDwgIEEAAYA8ICCxAAGIAEGLEDGIMBmAMAiAYBkAYMugYECAEYCJIHATigB_ky&sclient=gws-wiz-serp');
   // await page.goto('https://coccoc.com/search?query=YouTube');
+  await page.goto('https://www.facebook.com/');
   // await page.goto('https://www.w3schools.com/html/tryit.asp?filename=tryhtml_default');
+
+  let result = await elementExists(page, 'xpath', '//*[@id="content"]/div/div/div/div[1]/h2', 5, 1000);
+  console.log(result);
 
   // let kq = await javascriptCode(page, 'active tab', {
   //   jsCode: {
