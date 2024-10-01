@@ -1571,6 +1571,31 @@ const elementExists = async (page, findBy, selector, tryFor = 1, timeout = 1000)
     }
 }
 
+async function handleDialog(page, accept = false, promptText = '') {
+    try {
+        // Tạo hộp thoại dựa trên giá trị accept
+        let result = await page.evaluate((accept, promptText) => {
+
+            if (accept) {
+                return confirm(promptText);
+            } else {
+                // Tạo hộp thoại confirm để từ chối
+                return confirm('Bạn có chắc chắn muốn từ chối hành động này?');
+            }
+
+        }, accept, promptText);
+
+        // Kiểm tra kết quả của hộp thoại
+        if (!result) {
+            return { success: false, message: 'Dialog not accepted' };
+        }
+        return { success: true, message: 'Dialog accepted' };
+    } catch (error) {
+        console.error('Error handling dialog:', error);
+        return { success: false, message: 'Error occurred while handling dialog' };
+    }
+}
+
 module.exports = {
     pressKey,
     forms,
@@ -1586,5 +1611,6 @@ module.exports = {
     createElement,
     cookie,
     javascriptCode,
-    elementExists
+    elementExists,
+    handleDialog
 };

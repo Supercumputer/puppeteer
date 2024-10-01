@@ -1,6 +1,24 @@
 // main.js
 const puppeteer = require('puppeteer');
-const { pressKey, forms, mouseClick, cookie, mouseMove, hoverElement, elementExists, javascriptCode, ScrollElement, xpathCoordinates, switchFrame, attributeValue, getText, link, createElement } = require('./keyboardActions');
+const {
+  pressKey,
+  forms,
+  mouseClick,
+  cookie,
+  mouseMove,
+  hoverElement,
+  handleDialog,
+  elementExists,
+  javascriptCode,
+  ScrollElement,
+  xpathCoordinates,
+  switchFrame,
+  attributeValue,
+  getText,
+  link,
+  createElement
+} = require('./keyboardActions');
+
 const installMouseHelper = require('./mousehelper.js');
 
 (async () => {
@@ -13,11 +31,32 @@ const installMouseHelper = require('./mousehelper.js');
 
   // await page.goto('https://www.google.com/search?q=google+number&sca_esv=f28b3b0bae9cc4f2&sca_upv=1&biw=800&bih=600&ei=rOXwZqLYOKTi2roP0ZGwiAw&ved=0ahUKEwii3sfklNiIAxUksVYBHdEIDME4ChDh1QMIDw&uact=5&oq=google+number&gs_lp=Egxnd3Mtd2l6LXNlcnAiDWdvb2dsZSBudW1iZXIyBRAAGIAEMgYQABgWGB4yBhAAGBYYHjIGEAAYFhgeMgYQABgWGB4yBhAAGBYYHjIGEAAYFhgeMgYQABgWGB4yBhAAGBYYHjIGEAAYFhgeSMQYUNELWMMXcAF4AJABAJgBYKAB1wWqAQE4uAEDyAEA-AEBmAIIoAKUBcICChAAGLADGNYEGEfCAg0QABiABBiwAxhDGIoFwgITEC4YgAQYsAMYQxjIAxiKBdgBAcICCBAAGIAEGLEDwgIEEAAYA8ICCxAAGIAEGLEDGIMBmAMAiAYBkAYMugYECAEYCJIHATigB_ky&sclient=gws-wiz-serp');
   // await page.goto('https://coccoc.com/search?query=YouTube');
-  await page.goto('https://www.facebook.com/');
   // await page.goto('https://www.w3schools.com/html/tryit.asp?filename=tryhtml_default');
-
-  let result = await elementExists(page, 'xpath', '//*[@id="content"]/div/div/div/div[1]/h2', 5, 1000);
+  let result = await handleDialog(page, false, 'Bạn có chắc chắn không ?');
   console.log(result);
+
+  if (result.success) {
+    await page.goto('https://example.com');
+  } else {
+    await page.close();
+  }
+  // Navigate to a page that will trigger a dialog
+
+  // // Trigger a dialog
+  // await page.evaluate(() => {
+  //   // Replace `prompt` with `alert` or `confirm` to test different dialogs
+  //   prompt('Please enter some text:');
+  // });
+
+  // Wait to see the result
+  // await new Promise(resolve => setTimeout(resolve, 2000));
+
+  // await handleDialog(page, true, 'Hello, world!');
+
+  // await page.evaluate(() => alert('This is a test alert'));
+
+  // let result = await elementExists(page, 'cssSelector', '#content > div > div > div > div._8esl > h2', 5, 1000);
+  // console.log(result);
 
   // let kq = await javascriptCode(page, 'active tab', {
   //   jsCode: {
@@ -27,7 +66,7 @@ const installMouseHelper = require('./mousehelper.js');
   //       'https://code.jquery.com/jquery-3.6.0.min.js' // Thay bằng URL hợp lệ cho script của bạn
   //     ] // Cấu trúc preloadScripts như yêu cầu
   //   },
-  //   executeInEveryNewTab: false,
+  //   executeInEveryNewTab: true,
   //   runBeforePageLoad: false,
   //   timeout: 3000,
   // })
@@ -154,11 +193,11 @@ const installMouseHelper = require('./mousehelper.js');
 
   // console.log('\x1b[31m%s\x1b[0m', text);
 
-  // const links = await link(page, 'css', '.LC20lb.MBeuO.DKV0Md', {
-  //     markElement: true,        // Đánh dấu phần tử
-  //     waitForSelector: true,    // Đợi phần tử xuất hiện
-  //     selectorTimeout: 5000,      // Thời gian chờ
-  //     openLinkInNewTab: false
+  // const links = await link(page, 'css', '#u_0_2_FC > div._6ltj > a', {
+  //   markElement: true,        // Đánh dấu phần tử
+  //   waitForSelector: true,    // Đợi phần tử xuất hiện
+  //   selectorTimeout: 5000,      // Thời gian chờ
+  //   openLinkInNewTab: false
   // });
 
   // console.log('\x1b[31m%s\x1b[0m', links);
